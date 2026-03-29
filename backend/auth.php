@@ -1,15 +1,51 @@
 <?php
 session_start();
 header("Content-Type: application/json");
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
 include "db_functions.php";
 
 $connection = connectDB();
 createUsersTable($connection);
 
-$action = isset($_POST['action']) ? $_POST['action'] : '';
+function getJsonBody() {
+    $raw = file_get_contents('php://input');
+    if (!$raw) {
+        return array();
+    }
+
+    $decoded = json_decode($raw, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        return array();
+    }
+
+    return is_array($decoded) ? $decoded : array();
+}
+
+$input = !empty($_POST) ? $_POST : getJsonBody();
+$action = isset($input['action']) ? $input['action'] : (isset($_GET['action']) ? $_GET['action'] : '');
+
+function sendErrorResponse($statusCode, $message, $extra = array()) {
+    http_response_code($statusCode);
+    echo json_encode(array_merge(array(
+        "success" => false,
+        "message" => $message
+    ), $extra));
+    exit;
+}
 
 function sendResponse($success, $message, $extra = array()) {
+    if ($success) {
+        http_response_code(200);
+    }
+
     echo json_encode(array_merge(array(
         "success" => $success,
         "message" => $message
@@ -18,43 +54,43 @@ function sendResponse($success, $message, $extra = array()) {
 }
 
 if ($action === 'signup') {
-    $fullname = isset($_POST['fullname']) ? trim($_POST['fullname']) : '';
-    $email = isset($_POST['email']) ? trim($_POST['email']) : '';
-    $username = isset($_POST['username']) ? trim($_POST['username']) : '';
-    $password = isset($_POST['password']) ? $_POST['password'] : '';
-    $role = isset($_POST['role']) ? trim($_POST['role']) : 'user';
+    $fullname = isset($input['fullname']) ? trim($input['fullname']) : '';
+    $email = isset($input['email']) ? trim($input['email']) : '';
+    $username = isset($input['username']) ? trim($input['username']) : '';
+    $password = isset($input['password']) ? $input['password'] : '';
+    $role = isset($input['role']) ? trim($input['role']) : 'user';
 
     if ($fullname === '' || $email === '' || $username === '' || $password === '') {
-        sendResponse(false, "All required fields must be provided.");
+        sendErrorResponse(400, "All required fields must be provided.");
     }
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        sendResponse(false, "Invalid email format.");
+        sendErrorResponse(400, "Invalid email format.");
     }
 
     if (strlen($password) < 6) {
-        sendResponse(false, "Password must be at least 6 characters.");
+        sendErrorResponse(400, "Password must be at least 6 characters.");
     }
 
     $created = createUser($connection, $fullname, $email, $username, $password, $role);
     if (!$created) {
-        sendResponse(false, "Unable to create account. Username or email may already exist.");
+        sendErrorResponse(409, "Unable to create account. Username or email may already exist.");
     }
 
     sendResponse(true, "Account created successfully.");
 }
 
 if ($action === 'login') {
-    $username = isset($_POST['username']) ? trim($_POST['username']) : '';
-    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    $username = isset($input['username']) ? trim($input['username']) : '';
+    $password = isset($input['password']) ? $input['password'] : '';
 
     if ($username === '' || $password === '') {
-        sendResponse(false, "Username and password are required.");
+        sendErrorResponse(400, "Username and password are required.");
     }
 
     $user = getUserByUsername($connection, $username);
     if (!$user || !password_verify($password, $user['password_hash'])) {
-        sendResponse(false, "Invalid username or password.");
+        sendErrorResponse(401, "Invalid username or password.");
     }
 
     $_SESSION['user'] = array(
@@ -85,7 +121,7 @@ if ($action === 'session') {
     if (isset($_SESSION['user'])) {
         sendResponse(true, "Session active.", array("user" => $_SESSION['user']));
     }
-    sendResponse(false, "No active session.");
+    sendErrorResponse(401, "No active session.");
 }
 
-sendResponse(false, "Invalid action.");
+sendErrorResponse(400, "Invalid action.");

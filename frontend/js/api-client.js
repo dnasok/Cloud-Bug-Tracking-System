@@ -1,6 +1,7 @@
 const MOCK_MODE_KEY = "mock_mode";
 const MOCK_USERS_KEY = "mock_users";
 const MOCK_BUGS_KEY = "mock_bugs";
+const BUG_API_ENDPOINT = "bug_backend_api.php";
 
 function getApiBasePath() {
 	const path = window.location.pathname;
@@ -103,7 +104,24 @@ async function postForm(endpoint, payload) {
 		credentials: "same-origin"
 	});
 
-	return response.json();
+	let data;
+	try {
+		data = await response.json();
+	} catch (error) {
+		return {
+			success: false,
+			message: "Invalid API response format."
+		};
+	}
+
+	if (typeof data.success === "undefined") {
+		return {
+			success: response.ok,
+			message: data.message || (response.ok ? "Request processed." : "Request failed.")
+		};
+	}
+
+	return data;
 }
 
 async function getJson(endpoint) {
@@ -115,6 +133,22 @@ async function getJson(endpoint) {
 		credentials: "same-origin"
 	});
 	return response.json();
+}
+
+async function requestJson(endpoint, options) {
+	const response = await fetch(getApiBasePath() + "/" + endpoint, {
+		credentials: "same-origin",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		...options
+	});
+
+	const payload = await response.json();
+	return {
+		httpStatus: response.status,
+		...payload
+	};
 }
 
 async function loginUser(username, password) {
@@ -187,16 +221,30 @@ async function getBugList() {
 	if (isMockMode()) {
 		return { success: true, bugs: readMockBugs() };
 	}
-	return getJson("view_bugs.php");
+
+	const result = await getJson(BUG_API_ENDPOINT);
+	return {
+		success: Boolean(result.success),
+		bugs: Array.isArray(result.data) ? result.data : [],
+		count: Number(result.count || 0)
+	};
 }
 
 async function getBugById(id) {
-	const result = await getBugList();
-	const bugs = Array.isArray(result.bugs) ? result.bugs : [];
-	const bug = bugs.find(function (item) {
-		return String(item.id) === String(id);
-	});
-	return { success: Boolean(bug), bug: bug || null };
+	if (isMockMode()) {
+		const result = await getBugList();
+		const bugs = Array.isArray(result.bugs) ? result.bugs : [];
+		const bug = bugs.find(function (item) {
+			return String(item.id) === String(id);
+		});
+		return { success: Boolean(bug), bug: bug || null };
+	}
+
+	const result = await getJson(BUG_API_ENDPOINT + "?id=" + encodeURIComponent(id));
+	return {
+		success: Boolean(result.success),
+		bug: result.data || null
+	};
 }
 
 async function submitBug(input) {
@@ -217,21 +265,71 @@ async function submitBug(input) {
 		return { success: true, message: "Bug submitted (mock mode).", bug: newBug };
 	}
 
-	const payload = new URLSearchParams({
-		title: input.title,
-		description: input.description
-	}).toString();
-
-	const response = await fetch(getApiBasePath() + "/submit_bug.php", {
+	const result = await requestJson(BUG_API_ENDPOINT, {
 		method: "POST",
-		headers: { "Content-Type": "application/x-www-form-urlencoded" },
-		body: payload,
-		credentials: "same-origin"
+		body: JSON.stringify({
+			title: input.title,
+			description: input.description,
+			severity: input.severity || "Low",
+			status: input.status || "Open",
+			assigned_to: input.assigned_to || "",
+			screenshot_url: input.screenshot_url || ""
+		})
 	});
 
-	const text = await response.text();
 	return {
-		success: response.ok,
-		message: text
+		success: Boolean(result.success),
+		message: result.message || "Request processed.",
+		bug: result.data || null
+	};
+}
+
+async function updateBug(id, changes) {
+	if (isMockMode()) {
+		const bugs = readMockBugs();
+		const index = bugs.findIndex(function (item) {
+			return String(item.id) === String(id);
+		});
+
+		if (index < 0) {
+			return { success: false, message: "Bug not found." };
+		}
+
+		bugs[index] = {
+			...bugs[index],
+			...changes
+		};
+		writeMockBugs(bugs);
+		return { success: true, message: "Bug updated (mock mode).", bug: bugs[index] };
+	}
+
+	const result = await requestJson(BUG_API_ENDPOINT + "?id=" + encodeURIComponent(id), {
+		method: "PATCH",
+		body: JSON.stringify(changes || {})
+	});
+
+	return {
+		success: Boolean(result.success),
+		message: result.message || "Request processed.",
+		bug: result.data || null
+	};
+}
+
+async function deleteBug(id) {
+	if (isMockMode()) {
+		const bugs = readMockBugs().filter(function (item) {
+			return String(item.id) !== String(id);
+		});
+		writeMockBugs(bugs);
+		return { success: true, message: "Bug deleted (mock mode)." };
+	}
+
+	const result = await requestJson(BUG_API_ENDPOINT + "?id=" + encodeURIComponent(id), {
+		method: "DELETE"
+	});
+
+	return {
+		success: Boolean(result.success),
+		message: result.message || "Request processed."
 	};
 }
