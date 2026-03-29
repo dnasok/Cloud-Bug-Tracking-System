@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Bug Tracker | Dashboard</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" href="../css/styles.css">
+</head>
+<body class="bg-slate-100 min-h-screen">
+	<main class="max-w-7xl mx-auto p-4 md:p-8">
+		<section class="bg-white rounded-xl shadow p-6">
+			<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+				<div>
+					<h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
+					<p class="text-slate-600">All submitted bugs in one place.</p>
+					<p id="modeBadge" class="text-xs text-slate-500 mt-1"></p>
+				</div>
+				<a href="submit-bug.html" class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700">Submit New Bug</a>
+			</div>
+
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+				<input id="searchInput" type="text" placeholder="Search title..." class="rounded-lg border border-slate-300 px-3 py-2" />
+				<select id="statusFilter" class="rounded-lg border border-slate-300 px-3 py-2">
+					<option value="">All Status</option>
+					<option value="Open">Open</option>
+					<option value="In Progress">In Progress</option>
+					<option value="Resolved">Resolved</option>
+				</select>
+				<select id="priorityFilter" class="rounded-lg border border-slate-300 px-3 py-2">
+					<option value="">All Priorities</option>
+					<option value="High">High</option>
+					<option value="Medium">Medium</option>
+					<option value="Low">Low</option>
+				</select>
+			</div>
+
+			<div class="overflow-x-auto mt-6">
+				<table class="min-w-full bg-white rounded-lg overflow-hidden">
+					<thead>
+						<tr>
+							<th>ID</th>
+							<th>Title</th>
+							<th>Category</th>
+							<th>Priority</th>
+							<th>Status</th>
+							<th>Created</th>
+						</tr>
+					</thead>
+					<tbody id="bugsTableBody">
+						<tr>
+							<td colspan="6" class="text-center text-slate-500 py-6">Loading bugs...</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
+	</main>
+
+	<script src="../js/utils.js"></script>
+	<script src="../js/api-client.js"></script>
+	<script src="../js/auth.js"></script>
+	<script>
+		requireAuth();
+		mountNavbar({ basePath: "" });
+		document.getElementById("modeBadge").textContent = isMockMode() ? "Mode: Local Mock API" : "Mode: Backend API";
+
+		let bugsCache = [];
+
+		function renderRows(list) {
+			const tbody = document.getElementById("bugsTableBody");
+			if (!list.length) {
+				tbody.innerHTML = '<tr><td colspan="6" class="text-center text-slate-500 py-6">No bugs found.</td></tr>';
+				return;
+			}
+
+			tbody.innerHTML = list.map(function (bug) {
+				return "<tr>" +
+					"<td>#" + escapeHtml(String(bug.id || "")) + "</td>" +
+					"<td><a class=\"text-blue-700 font-semibold hover:underline\" href=\"bug-detail.html?id=" + encodeURIComponent(bug.id) + "\">" + escapeHtml(bug.title || "Untitled") + "</a></td>" +
+					"<td>" + escapeHtml(bug.category || "Uncategorized") + "</td>" +
+					"<td>" + escapeHtml(bug.priority || "-") + "</td>" +
+					"<td>" + escapeHtml(bug.status || "Open") + "</td>" +
+					"<td>" + escapeHtml(formatDate(bug.created_at)) + "</td>" +
+					"</tr>";
+			}).join("");
+		}
+
+		function applyFilters() {
+			const searchValue = document.getElementById("searchInput").value.trim().toLowerCase();
+			const statusValue = document.getElementById("statusFilter").value;
+			const priorityValue = document.getElementById("priorityFilter").value;
+
+			const filtered = bugsCache.filter(function (bug) {
+				const title = (bug.title || "").toLowerCase();
+				const status = bug.status || "";
+				const priority = bug.priority || "";
+				const searchOk = !searchValue || title.includes(searchValue);
+				const statusOk = !statusValue || status === statusValue;
+				const priorityOk = !priorityValue || priority === priorityValue;
+				return searchOk && statusOk && priorityOk;
+			});
+
+			renderRows(filtered);
+		}
+
+		async function loadBugs() {
+			try {
+				const result = await getBugList();
+				bugsCache = Array.isArray(result.bugs) ? result.bugs : [];
+				applyFilters();
+			} catch (error) {
+				document.getElementById("bugsTableBody").innerHTML = '<tr><td colspan="6" class="text-center text-red-600 py-6">Failed to load bugs.</td></tr>';
+				console.error(error);
+			}
+		}
+
+		document.getElementById("searchInput").addEventListener("input", applyFilters);
+		document.getElementById("statusFilter").addEventListener("change", applyFilters);
+		document.getElementById("priorityFilter").addEventListener("change", applyFilters);
+
+		loadBugs();
+	</script>
+</body>
+</html>

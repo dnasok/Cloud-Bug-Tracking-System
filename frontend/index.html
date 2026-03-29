@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Bug Tracker | Login</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+	<main class="w-full max-w-md bg-white shadow-xl rounded-2xl p-8">
+		<h1 class="text-3xl font-bold text-slate-900">Bug Tracker</h1>
+		<p class="text-slate-600 mt-2">Sign in to report and track issues.</p>
+
+		<form id="loginForm" class="mt-8 space-y-4">
+			<div>
+				<label for="username" class="block text-sm font-medium text-slate-700">Username</label>
+				<input id="username" name="username" type="text" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+			</div>
+
+			<div>
+				<label for="password" class="block text-sm font-medium text-slate-700">Password</label>
+				<input id="password" name="password" type="password" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+			</div>
+
+			<button type="submit" class="w-full rounded-lg bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700">Sign In</button>
+		</form>
+
+		<div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+			<label class="flex items-center gap-2 text-sm text-slate-700">
+				<input id="mockModeToggle" type="checkbox" class="h-4 w-4" />
+				Use local mock mode (no backend required)
+			</label>
+			<p class="text-xs text-slate-500 mt-2">Default test users: admin/admin123, dev/dev12345, user/user12345</p>
+		</div>
+
+		<div id="message" class="mt-4 text-sm"></div>
+
+		<p class="text-sm text-slate-600 mt-6">
+			Need an account?
+			<a href="pages/signup.html" class="text-blue-600 font-semibold hover:text-blue-700">Sign up</a>
+		</p>
+	</main>
+
+	<script src="js/utils.js"></script>
+	<script src="js/api-client.js"></script>
+	<script src="js/auth.js"></script>
+	<script>
+		const mockModeToggle = document.getElementById("mockModeToggle");
+		mockModeToggle.checked = isMockMode();
+		mockModeToggle.addEventListener("change", function () {
+			setMockMode(mockModeToggle.checked);
+		});
+
+		document.getElementById("loginForm").addEventListener("submit", async function (event) {
+			event.preventDefault();
+
+			const username = document.getElementById("username").value.trim();
+			const password = document.getElementById("password").value;
+
+			const messageEl = document.getElementById("message");
+			messageEl.className = "mt-4 text-sm text-slate-600";
+			messageEl.textContent = "Signing in...";
+
+			try {
+				const result = await loginUser(username, password);
+				if (!result.success) {
+					messageEl.className = "mt-4 text-sm text-red-600";
+					messageEl.textContent = result.message || "Login failed.";
+					return;
+				}
+
+				setAuthState(result.user);
+				messageEl.className = "mt-4 text-sm text-green-700";
+				messageEl.textContent = "Login successful. Redirecting...";
+				window.location.href = "pages/dashboard.html";
+			} catch (error) {
+				messageEl.className = "mt-4 text-sm text-red-600";
+				messageEl.textContent = "Unable to login right now. Please try again.";
+				console.error(error);
+			}
+		});
+	</script>
+</body>
+</html>
