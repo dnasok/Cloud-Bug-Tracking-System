@@ -1,7 +1,14 @@
+/*
+ * File: frontend/js/utils.js
+ * Purpose: Shared utility functions for validation, safe rendering, date formatting, and navbar UI.
+ */
+
+/** Validates basic email format for signup input checks. */
 function isValidEmail(value) {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+/** Escapes HTML-sensitive characters to prevent injected markup rendering. */
 function escapeHtml(value) {
 	const map = {
 		"&": "&amp;",
@@ -15,6 +22,7 @@ function escapeHtml(value) {
 	});
 }
 
+/** Formats date-like values for display and handles invalid values safely. */
 function formatDate(value) {
 	if (!value) {
 		return "-";
@@ -26,6 +34,7 @@ function formatDate(value) {
 	return date.toLocaleString();
 }
 
+/** Injects a shared top navigation bar on authenticated pages. */
 function mountNavbar(input) {
 	const options = input || {};
 	const basePath = options.basePath || "";

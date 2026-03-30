@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!--
+	File: frontend/pages/bug-detail.html
+	Purpose: Shows one bug's details and supports update/delete for privileged users.
+-->
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
@@ -23,11 +27,13 @@
 		requireAuth();
 		mountNavbar({ basePath: "" });
 
+		/** Reads the bug id from URL query parameters. */
 		function getBugIdFromQuery() {
 			const params = new URLSearchParams(window.location.search);
 			return params.get("id");
 		}
 
+		/** Renders bug details and privileged update/delete actions. */
 		function renderBug(bug) {
 			const detail = document.getElementById("bugDetail");
 			const actions = document.getElementById("bugActions");
@@ -73,6 +79,7 @@
 			document.getElementById("statusInput").value = bug.status || "Open";
 			document.getElementById("assignedToInput").value = bug.assigned_to || "";
 
+			// Saves modified status/assignee fields for the current bug.
 			document.getElementById("updateBugBtn").addEventListener("click", async function () {
 				const status = document.getElementById("statusInput").value;
 				const assignedTo = document.getElementById("assignedToInput").value.trim();
@@ -98,6 +105,7 @@
 				}
 			});
 
+			// Deletes the current bug after user confirmation.
 			document.getElementById("deleteBugBtn").addEventListener("click", async function () {
 				if (!confirm("Delete this bug? This cannot be undone.")) {
 					return;
@@ -124,6 +132,7 @@
 			});
 		}
 
+		/** Loads the selected bug and forwards data to the renderer. */
 		async function loadBugDetail() {
 			const id = getBugIdFromQuery();
 			if (!id) {

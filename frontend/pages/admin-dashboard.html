@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!--
+	File: frontend/pages/admin-dashboard.html
+	Purpose: Shows summary cards for bug statuses, restricted to admin/developer roles.
+-->
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
@@ -24,6 +28,7 @@
 		requireAdminOrDeveloper();
 		mountNavbar({ basePath: "" });
 
+		/** Fetches bugs and renders status summary cards. */
 		async function loadSummary() {
 			try {
 				const result = await getBugList();

@@ -1,11 +1,19 @@
+/*
+ * File: frontend/js/auth.js
+ * Purpose: Stores auth state and provides role guards plus logout flow.
+ */
+
+/** Saves authenticated user details in localStorage. */
 function setAuthState(user) {
 	localStorage.setItem("auth_user", JSON.stringify(user));
 }
 
+/** Clears persisted auth state from localStorage. */
 function clearAuthState() {
 	localStorage.removeItem("auth_user");
 }
 
+/** Reads current auth state and self-heals invalid JSON values. */
 function getAuthState() {
 	const raw = localStorage.getItem("auth_user");
 	if (!raw) {
@@ -20,10 +28,12 @@ function getAuthState() {
 	}
 }
 
+/** Returns true when a user object is stored locally. */
 function isAuthenticated() {
 	return Boolean(getAuthState());
 }
 
+/** Returns true for admin or developer roles. */
 function isAdminOrDeveloper() {
 	const user = getAuthState();
 	if (!user) {
@@ -32,6 +42,7 @@ function isAdminOrDeveloper() {
 	return user.role === "admin" || user.role === "developer";
 }
 
+/** Redirects to login when no active auth state exists. */
 function requireAuth() {
 	if (isAuthenticated()) {
 		return;
@@ -39,6 +50,7 @@ function requireAuth() {
 	window.location.href = "../index.html";
 }
 
+/** Guards privileged routes and redirects unauthorized users. */
 function requireAdminOrDeveloper() {
 	requireAuth();
 	if (!isAdminOrDeveloper()) {
@@ -47,6 +59,7 @@ function requireAdminOrDeveloper() {
 	}
 }
 
+/** Attempts logout request, clears local auth, and redirects to login page. */
 async function doLogout() {
 	try {
 		await logoutUser();

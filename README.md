@@ -1,6 +1,30 @@
 # CSD3156-Team-Project-2
 Cloud-Based Bug Tracking and Reporting System for Developers
 
+## File Documentation
+
+### Frontend
+
+- `frontend/index.html`: Login entry page with mock-mode toggle and authentication flow.
+- `frontend/css/styles.css`: Shared visual styles used by all frontend pages.
+- `frontend/js/api-client.js`: API layer for auth and bug operations (mock mode + backend mode).
+- `frontend/js/auth.js`: Authentication/session helpers and route guards for protected pages.
+- `frontend/js/utils.js`: Utility helpers (validation, escaping, date formatting, navbar mounting).
+- `frontend/pages/dashboard.html`: Main bug listing page with search and filter UI.
+- `frontend/pages/admin-dashboard.html`: Admin/developer summary dashboard with status counts.
+- `frontend/pages/bug-detail.html`: Bug detail page with update/delete actions for privileged roles.
+- `frontend/pages/profile.html`: Basic profile page showing user info and system bug counts.
+- `frontend/pages/signup.html`: New user registration page.
+- `frontend/pages/submit-bug.html`: Bug submission page.
+
+### Backend
+
+- `backend/auth.php`: Authentication API (signup, login, logout, session).
+- `backend/bug_backend_api.php`: JSON API for bug CRUD operations.
+- `backend/classify_bug.php`: Rule-based bug category and priority classification helpers.
+- `backend/db_functions.php`: Shared database connection and users table helpers.
+- `backend/inc/dbinfo.inc`: Database configuration constants.
+
 ## Local Frontend Testing (No Backend Required)
 
 You can test the full frontend flow locally using a built-in mock API mode (browser localStorage).

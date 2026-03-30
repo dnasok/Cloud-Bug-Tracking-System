@@ -1,13 +1,19 @@
+/*
+ * File: frontend/js/api-client.js
+ * Purpose: Central API client supporting both local mock mode and real backend endpoints.
+ */
 const MOCK_MODE_KEY = "mock_mode";
 const MOCK_USERS_KEY = "mock_users";
 const MOCK_BUGS_KEY = "mock_bugs";
 const BUG_API_ENDPOINT = "bug_backend_api.php";
 
+/** Resolves the backend base path from the current frontend route. */
 function getApiBasePath() {
 	const path = window.location.pathname;
 	return path.indexOf("/frontend/pages/") !== -1 ? "../../backend" : "../backend";
 }
 
+/** Reads mock mode override from URL query string. */
 function getMockModeFromQuery() {
 	const params = new URLSearchParams(window.location.search);
 	const value = params.get("mock");
@@ -20,6 +26,7 @@ function getMockModeFromQuery() {
 	return null;
 }
 
+/** Returns whether mock mode is enabled and persists query-driven choices. */
 function isMockMode() {
 	const fromQuery = getMockModeFromQuery();
 	if (fromQuery !== null) {
@@ -40,10 +47,12 @@ function isMockMode() {
 	return true;
 }
 
+/** Persists mock mode state in localStorage. */
 function setMockMode(enabled) {
 	localStorage.setItem(MOCK_MODE_KEY, enabled ? "1" : "0");
 }
 
+/** Seeds local mock users and bugs if they are missing. */
 function ensureMockData() {
 	if (!localStorage.getItem(MOCK_USERS_KEY)) {
 		const seededUsers = [
@@ -65,24 +74,29 @@ function ensureMockData() {
 	}
 }
 
+/** Returns all mock users from localStorage. */
 function readMockUsers() {
 	ensureMockData();
 	return JSON.parse(localStorage.getItem(MOCK_USERS_KEY) || "[]");
 }
 
+/** Writes updated mock users to localStorage. */
 function writeMockUsers(users) {
 	localStorage.setItem(MOCK_USERS_KEY, JSON.stringify(users));
 }
 
+/** Returns all mock bugs from localStorage. */
 function readMockBugs() {
 	ensureMockData();
 	return JSON.parse(localStorage.getItem(MOCK_BUGS_KEY) || "[]");
 }
 
+/** Writes updated mock bugs to localStorage. */
 function writeMockBugs(bugs) {
 	localStorage.setItem(MOCK_BUGS_KEY, JSON.stringify(bugs));
 }
 
+/** Removes sensitive fields before user data is stored client-side. */
 function sanitizeUser(user) {
 	return {
 		id: user.id,
@@ -93,6 +107,7 @@ function sanitizeUser(user) {
 	};
 }
 
+/** Sends URL-encoded form data to a backend endpoint and normalizes the response. */
 async function postForm(endpoint, payload) {
 	const body = new URLSearchParams(payload).toString();
 	const response = await fetch(getApiBasePath() + "/" + endpoint, {
@@ -124,6 +139,7 @@ async function postForm(endpoint, payload) {
 	return data;
 }
 
+/** Performs a GET request and parses JSON payload. */
 async function getJson(endpoint) {
 	const response = await fetch(getApiBasePath() + "/" + endpoint, {
 		method: "GET",
@@ -135,6 +151,7 @@ async function getJson(endpoint) {
 	return response.json();
 }
 
+/** Sends a JSON request with configurable HTTP options. */
 async function requestJson(endpoint, options) {
 	const response = await fetch(getApiBasePath() + "/" + endpoint, {
 		credentials: "same-origin",
@@ -151,6 +168,7 @@ async function requestJson(endpoint, options) {
 	};
 }
 
+/** Authenticates a user in mock mode or against the backend auth API. */
 async function loginUser(username, password) {
 	if (isMockMode()) {
 		const users = readMockUsers();
@@ -170,6 +188,7 @@ async function loginUser(username, password) {
 	});
 }
 
+/** Registers a new user in mock mode or against the backend auth API. */
 async function signupUser(input) {
 	if (isMockMode()) {
 		const users = readMockUsers();
@@ -203,6 +222,7 @@ async function signupUser(input) {
 	});
 }
 
+/** Logs out current user session in mock mode or backend mode. */
 async function logoutUser() {
 	if (isMockMode()) {
 		return { success: true, message: "Logged out (mock mode)." };
@@ -210,6 +230,7 @@ async function logoutUser() {
 	return postForm("auth.php", { action: "logout" });
 }
 
+/** Checks server session status when backend mode is enabled. */
 async function getCurrentSessionUser() {
 	if (isMockMode()) {
 		return { success: false, message: "Session check is local-only in mock mode." };
@@ -217,6 +238,7 @@ async function getCurrentSessionUser() {
 	return postForm("auth.php", { action: "session" });
 }
 
+/** Fetches all bugs for dashboard and admin views. */
 async function getBugList() {
 	if (isMockMode()) {
 		return { success: true, bugs: readMockBugs() };
@@ -230,6 +252,7 @@ async function getBugList() {
 	};
 }
 
+/** Fetches one bug by id for the detail view. */
 async function getBugById(id) {
 	if (isMockMode()) {
 		const result = await getBugList();
@@ -247,6 +270,7 @@ async function getBugById(id) {
 	};
 }
 
+/** Creates a new bug record. */
 async function submitBug(input) {
 	if (isMockMode()) {
 		const bugs = readMockBugs();
@@ -284,6 +308,7 @@ async function submitBug(input) {
 	};
 }
 
+/** Updates an existing bug by id with partial changes. */
 async function updateBug(id, changes) {
 	if (isMockMode()) {
 		const bugs = readMockBugs();
@@ -315,6 +340,7 @@ async function updateBug(id, changes) {
 	};
 }
 
+/** Deletes a bug by id. */
 async function deleteBug(id) {
 	if (isMockMode()) {
 		const bugs = readMockBugs().filter(function (item) {

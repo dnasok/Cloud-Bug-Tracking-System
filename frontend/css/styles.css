@@ -1,4 +1,7 @@
-/* Global Styles */
+/*
+ * File: frontend/css/styles.css
+ * Purpose: Shared global styles and reusable utility classes for the frontend pages.
+ */
 :root {
     --primary-color: #2563eb;
     --secondary-color: #64748b;

@@ -1,4 +1,8 @@
 <?php
+/**
+ * File: backend/auth.php
+ * Purpose: Authentication API for signup, login, logout, and session validation.
+ */
 session_start();
 header("Content-Type: application/json");
 header('Access-Control-Allow-Origin: *');
@@ -15,6 +19,11 @@ include "db_functions.php";
 $connection = connectDB();
 createUsersTable($connection);
 
+/**
+ * Parses JSON request body and returns an array.
+ *
+ * @return array Decoded body or empty array when unavailable/invalid
+ */
 function getJsonBody() {
     $raw = file_get_contents('php://input');
     if (!$raw) {
@@ -32,6 +41,14 @@ function getJsonBody() {
 $input = !empty($_POST) ? $_POST : getJsonBody();
 $action = isset($input['action']) ? $input['action'] : (isset($_GET['action']) ? $_GET['action'] : '');
 
+/**
+ * Sends a standardized JSON error response and stops execution.
+ *
+ * @param int $statusCode HTTP status code
+ * @param string $message Human-readable error message
+ * @param array $extra Optional extra response fields
+ * @return void
+ */
 function sendErrorResponse($statusCode, $message, $extra = array()) {
     http_response_code($statusCode);
     echo json_encode(array_merge(array(
@@ -41,6 +58,14 @@ function sendErrorResponse($statusCode, $message, $extra = array()) {
     exit;
 }
 
+/**
+ * Sends a standardized JSON success/failure response and stops execution.
+ *
+ * @param bool $success Response success flag
+ * @param string $message Human-readable status message
+ * @param array $extra Optional extra response fields
+ * @return void
+ */
 function sendResponse($success, $message, $extra = array()) {
     if ($success) {
         http_response_code(200);

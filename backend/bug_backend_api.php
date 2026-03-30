@@ -1,4 +1,8 @@
 <?php
+/**
+ * File: backend/bug_backend_api.php
+ * Purpose: REST-like JSON API for bug creation, retrieval, update, and deletion.
+ */
 include "inc/dbinfo.inc";
 include "classify_bug.php";
 
@@ -14,12 +18,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
+/**
+ * Sends a JSON response with an explicit status code and exits.
+ *
+ * @param int $statusCode HTTP status code
+ * @param array $payload Response data payload
+ * @return void
+ */
 function sendJson($statusCode, $payload) {
     http_response_code($statusCode);
     echo json_encode($payload, JSON_PRETTY_PRINT);
     exit;
 }
 
+/**
+ * Creates a database connection for bug API operations.
+ *
+ * @return mysqli Active database connection
+ */
 function connectDB() {
     $connection = mysqli_connect(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
     if (!$connection) {
@@ -32,6 +48,12 @@ function connectDB() {
     return $connection;
 }
 
+/**
+ * Ensures the bugs table exists and attempts to add missing columns.
+ *
+ * @param mysqli $connection Active database connection
+ * @return void
+ */
 function ensureBugSchema($connection) {
     $createQuery = "CREATE TABLE IF NOT EXISTS bugs (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -65,6 +87,11 @@ function ensureBugSchema($connection) {
     }
 }
 
+/**
+ * Parses JSON body for write operations.
+ *
+ * @return array Decoded JSON object as associative array
+ */
 function getJsonBody() {
     $raw = file_get_contents('php://input');
     if (!$raw) {
@@ -82,12 +109,24 @@ function getJsonBody() {
     return $decoded;
 }
 
+/**
+ * Normalizes severity values to supported labels.
+ *
+ * @param mixed $value Raw severity input
+ * @return string Low|Medium|High|Critical
+ */
 function normalizeSeverity($value) {
     $allowed = ['Low', 'Medium', 'High', 'Critical'];
     $value = ucfirst(strtolower(trim((string)$value)));
     return in_array($value, $allowed) ? $value : 'Low';
 }
 
+/**
+ * Normalizes status values to supported labels.
+ *
+ * @param mixed $value Raw status input
+ * @return string Open|In Progress|Resolved|Closed
+ */
 function normalizeStatus($value) {
     $map = [
         'open' => 'Open',
@@ -100,6 +139,13 @@ function normalizeStatus($value) {
     return $map[$key] ?? 'Open';
 }
 
+/**
+ * Loads a single bug by primary key.
+ *
+ * @param mysqli $connection Active database connection
+ * @param int $id Bug id
+ * @return array|null Associative row or null if missing
+ */
 function fetchBugById($connection, $id) {
     $stmt = mysqli_prepare($connection, "SELECT * FROM bugs WHERE id = ?");
     mysqli_stmt_bind_param($stmt, 'i', $id);

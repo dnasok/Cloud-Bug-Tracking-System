@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!--
+	File: frontend/pages/dashboard.html
+	Purpose: Displays the bug table and client-side filters for status/priority/search.
+-->
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
@@ -67,6 +71,7 @@
 
 		let bugsCache = [];
 
+		/** Renders dashboard table rows from the provided bug list. */
 		function renderRows(list) {
 			const tbody = document.getElementById("bugsTableBody");
 			if (!list.length) {
@@ -86,6 +91,7 @@
 			}).join("");
 		}
 
+		/** Applies search/status/priority filters to the cached bug list. */
 		function applyFilters() {
 			const searchValue = document.getElementById("searchInput").value.trim().toLowerCase();
 			const statusValue = document.getElementById("statusFilter").value;
@@ -104,6 +110,7 @@
 			renderRows(filtered);
 		}
 
+		/** Loads bugs from API, updates cache, and renders filtered results. */
 		async function loadBugs() {
 			try {
 				const result = await getBugList();

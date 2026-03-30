@@ -1,7 +1,14 @@
 <?php
+/**
+ * File: backend/classify_bug.php
+ * Purpose: Heuristic keyword-based bug category and priority scoring utilities.
+ */
 
-/*! Keyword-based bug classification utilities
- * These helpers keep matching logic reusable and reduce false positives.
+/**
+ * Normalizes bug text into lowercase alphanumeric tokens.
+ *
+ * @param mixed $text Source text
+ * @return string Normalized text
  */
 function normalizeBugText($text) {
     $text = strtolower((string)$text);
@@ -10,11 +17,26 @@ function normalizeBugText($text) {
     return trim($text);
 }
 
+/**
+ * Checks whether a normalized text contains a whole-word keyword.
+ *
+ * @param string $text Normalized text
+ * @param string $keyword Keyword to match
+ * @return bool True when keyword exists as a full token
+ */
 function hasKeyword($text, $keyword) {
     $pattern = '/\b' . preg_quote($keyword, '/') . '\b/';
     return preg_match($pattern, $text) === 1;
 }
 
+/**
+ * Computes weighted keyword score from matched terms.
+ * Higher weights indicate stronger relevance to the category or priority level.
+ *
+ * @param string $text Normalized text
+ * @param array $weightedKeywords Map of keyword => weight
+ * @return int Total score
+ */
 function calculateKeywordScore($text, $weightedKeywords) {
     $score = 0;
     foreach ($weightedKeywords as $keyword => $weight) {
@@ -25,9 +47,14 @@ function calculateKeywordScore($text, $weightedKeywords) {
     return $score;
 }
 
-/*! AI bug classification function
- * Classifies bugs into Crash, Performance, UI, Security, or General
- * using weighted keywords across title and description.
+/**
+ * Classifies a bug report into a category using weighted keywords.
+ * Title matches are weighted more heavily than description matches.
+ * Returns "General" if no category keywords are found.
+ *
+ * @param string $title Bug title
+ * @param string $description Bug description
+ * @return string Classified category label
  */
 function classifyBug($title, $description) {
 
@@ -121,8 +148,16 @@ function classifyBug($title, $description) {
     return $bestCategory;
 }
 
-/*! Bug priority assignment
- * Uses severity phrases plus category hints to assign High, Medium, or Low.
+/**
+ * Assigns priority based on textual severity indicators and category weight.
+ * Higher scores indicate more urgent issues that should be addressed sooner.
+ * Category weight boosts priority for critical areas like Security and Crash.
+ * Returns "High", "Medium", or "Low" priority labels.
+ *
+ * @param string $description Bug description
+ * @param string $title Bug title
+ * @param string $category Optional pre-classified category
+ * @return string High|Medium|Low
  */
 function getPriority($description, $title = "", $category = "") {
 

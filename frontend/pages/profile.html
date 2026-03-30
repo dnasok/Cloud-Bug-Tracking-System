@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!--
+	File: frontend/pages/profile.html
+	Purpose: Displays the current user's profile info and simple bug metrics.
+-->
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
@@ -22,6 +26,7 @@
 		requireAuth();
 		mountNavbar({ basePath: "" });
 
+		/** Loads authenticated user info and simple bug statistics. */
 		async function loadProfile() {
 			const user = getAuthState();
 			if (!user) {

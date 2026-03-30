@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!--
+	File: frontend/pages/submit-bug.html
+	Purpose: Captures new bug reports and submits them via the API client.
+-->
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
@@ -48,6 +52,7 @@
 		requireAuth();
 		mountNavbar({ basePath: "" });
 
+		// Handles bug submission form validation and API submission feedback.
 		document.getElementById("submitBugForm").addEventListener("submit", async function (event) {
 			event.preventDefault();
 

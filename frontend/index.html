@@ -1,4 +1,9 @@
 <!DOCTYPE html>
+<!--
+	File: frontend/index.html
+	Purpose: Login entry page that authenticates users and routes to the dashboard.
+	Dependencies: js/utils.js, js/api-client.js, js/auth.js
+-->
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
@@ -48,10 +53,12 @@
 	<script>
 		const mockModeToggle = document.getElementById("mockModeToggle");
 		mockModeToggle.checked = isMockMode();
+		// Persists mock mode toggle state for subsequent requests.
 		mockModeToggle.addEventListener("change", function () {
 			setMockMode(mockModeToggle.checked);
 		});
 
+		// Handles login form submission and redirects after successful auth.
 		document.getElementById("loginForm").addEventListener("submit", async function (event) {
 			event.preventDefault();
 

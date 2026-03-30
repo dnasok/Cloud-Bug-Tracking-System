@@ -1,4 +1,8 @@
 <?php
+/**
+ * File: backend/db_functions.php
+ * Purpose: Shared database connection and helper functions for users/bugs tables.
+ */
 include "inc/dbinfo.inc";
 
 /**
