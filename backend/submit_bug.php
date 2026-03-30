@@ -25,7 +25,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $category = classifyBug($title, $description);
 
     // Get the priority of the bug using the AI-based priority assignment function
-    $priority = getPriority($description);
+    $priority = getPriority($description, $title, $category);
 
     // Insert the new bug report into the database
     insertBug($connection, $title, $description, $category, $priority);

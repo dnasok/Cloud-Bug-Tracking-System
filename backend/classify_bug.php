@@ -1,60 +1,174 @@
 <?php
 
-/*! Simple AI-based bug classification function
- * This function takes a bug title and description as input and classifies the bug into
- * categories such as Crash, Performance, UI, Security, or General based on keyword analysis.
- * Expand this with more keywords and categories as needed.
+/*! Keyword-based bug classification utilities
+ * These helpers keep matching logic reusable and reduce false positives.
+ */
+function normalizeBugText($text) {
+    $text = strtolower((string)$text);
+    $text = preg_replace('/[^a-z0-9\s]/', ' ', $text);
+    $text = preg_replace('/\s+/', ' ', $text);
+    return trim($text);
+}
+
+function hasKeyword($text, $keyword) {
+    $pattern = '/\b' . preg_quote($keyword, '/') . '\b/';
+    return preg_match($pattern, $text) === 1;
+}
+
+function calculateKeywordScore($text, $weightedKeywords) {
+    $score = 0;
+    foreach ($weightedKeywords as $keyword => $weight) {
+        if (hasKeyword($text, $keyword)) {
+            $score += $weight;
+        }
+    }
+    return $score;
+}
+
+/*! AI bug classification function
+ * Classifies bugs into Crash, Performance, UI, Security, or General
+ * using weighted keywords across title and description.
  */
 function classifyBug($title, $description) {
 
-    // Combine title and description for keyword analysis
-    $text = strtolower($title . " " . $description);
+    $titleText = normalizeBugText($title);
+    $descriptionText = normalizeBugText($description);
 
-    // Check for keywords related to crashes
-    // Example Title: App crash
-    // Example Description: The app crashes when clicking login
-    if (strpos($text, "crash") !== false || strpos($text, "error") !== false
-     || strpos($text, "exception") !== false || strpos($text, "fail") !== false) {
-        return "Crash";
+    $categoryKeywords = array(
+        "Crash" => array(
+            "crash" => 4,
+            "crashes" => 4,
+            "fatal" => 3,
+            "exception" => 3,
+            "stack trace" => 3,
+            "null pointer" => 3,
+            "stopped" => 2,
+            "freezes" => 2,
+            "hang" => 2,
+            "not responding" => 3,
+            "fails" => 2,
+            "failure" => 2
+        ),
+        "Performance" => array(
+            "slow" => 3,
+            "sluggish" => 3,
+            "lag" => 3,
+            "latency" => 3,
+            "delay" => 2,
+            "timeout" => 3,
+            "timed out" => 3,
+            "performance" => 3,
+            "high cpu" => 3,
+            "memory leak" => 4,
+            "loading" => 1,
+            "takes too long" => 3
+        ),
+        "UI" => array(
+            "ui" => 2,
+            "ux" => 2,
+            "layout" => 3,
+            "alignment" => 3,
+            "button" => 2,
+            "font" => 2,
+            "color" => 2,
+            "responsive" => 3,
+            "overlap" => 3,
+            "visual" => 2,
+            "css" => 2,
+            "design" => 2
+        ),
+        "Security" => array(
+            "security" => 4,
+            "vulnerability" => 4,
+            "xss" => 5,
+            "csrf" => 5,
+            "sql injection" => 5,
+            "sqli" => 5,
+            "token leak" => 4,
+            "unauthorized" => 4,
+            "permission bypass" => 5,
+            "exploit" => 4,
+            "breach" => 5,
+            "authentication bypass" => 5
+        )
+    );
+
+    $scores = array();
+
+    foreach ($categoryKeywords as $category => $keywords) {
+        $titleScore = calculateKeywordScore($titleText, $keywords);
+        $descriptionScore = calculateKeywordScore($descriptionText, $keywords);
+        $scores[$category] = ($titleScore * 2) + $descriptionScore;
     }
 
-    // Check for keywords related to performance issues
-    // Example Description: The page is very slow when loading dashboard
-    if (strpos($text, "slow") !== false || strpos($text, "lag") !== false
-     || strpos($text, "performance") !== false || strpos($text, "delay") !== false) {
-        return "Performance";
+    // Security should win close ties because impact is usually highest.
+    $tieBreakOrder = array("Security", "Crash", "Performance", "UI");
+
+    $bestCategory = "General";
+    $bestScore = 0;
+
+    foreach ($tieBreakOrder as $category) {
+        if ($scores[$category] > $bestScore) {
+            $bestScore = $scores[$category];
+            $bestCategory = $category;
+        }
     }
 
-    // Check for keywords related to UI issues
-    // Example Description: Button is not aligned properly
-    if (strpos($text, "button") !== false || strpos($text, "ui") !== false
-     || strpos($text, "layout") !== false || strpos($text, "design") !== false) {
-        return "UI";
+    if ($bestScore === 0) {
+        return "General";
     }
 
-    // Check for keywords related to security issues
-    // Example Description: Found a vulnerability that allows SQL injection
-    if (strpos($text, "hack") !== false || strpos($text, "security") !== false
-     || strpos($text, "vulnerability") !== false || strpos($text, "sql injection") !== false) {
-        return "Security";
-    }
-    
-    // If no specific keywords are found, classify as General
-    return "General";
+    return $bestCategory;
 }
 
-/*! Simple AI-based bug priority assignment function
- * This function takes a bug description as input and assigns a priority level (High, Medium, Low)
- * based on the presence of certain keywords.
+/*! Bug priority assignment
+ * Uses severity phrases plus category hints to assign High, Medium, or Low.
  */
-function getPriority($description) {
+function getPriority($description, $title = "", $category = "") {
 
-    // Convert description to lowercase for keyword analysis
-    $text = strtolower($description);
+    $titleText = normalizeBugText($title);
+    $descriptionText = normalizeBugText($description);
+    $combinedText = trim($titleText . " " . $descriptionText);
 
-    // Check for keywords that indicate high priority
-    if (strpos($text, "crash") !== false) return "High";
-    if (strpos($text, "slow") !== false) return "Medium";
+    $severityWeights = array(
+        "critical" => 5,
+        "urgent" => 5,
+        "production down" => 6,
+        "data loss" => 6,
+        "security breach" => 6,
+        "cannot login" => 4,
+        "payment failed" => 5,
+        "not responding" => 4,
+        "crash" => 4,
+        "exception" => 3,
+        "timeout" => 3,
+        "very slow" => 3,
+        "intermittent" => 2,
+        "minor" => -1,
+        "cosmetic" => -2,
+        "typo" => -2
+    );
+
+    $score = calculateKeywordScore($combinedText, $severityWeights);
+
+    if ($category === "") {
+        $category = classifyBug($title, $description);
+    }
+
+    if ($category === "Security") {
+        $score += 4;
+    } elseif ($category === "Crash") {
+        $score += 3;
+    } elseif ($category === "Performance") {
+        $score += 1;
+    }
+
+    if ($score >= 7) {
+        return "High";
+    }
+    if ($score >= 3) {
+        return "Medium";
+    }
     return "Low";
 }
 
