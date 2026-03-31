@@ -6,6 +6,7 @@ const MOCK_MODE_KEY = "mock_mode";
 const MOCK_USERS_KEY = "mock_users";
 const MOCK_BUGS_KEY = "mock_bugs";
 const BUG_API_ENDPOINT = "bug_backend_api.php";
+const SCREENSHOT_UPLOAD_ENDPOINT = "upload_screenshot.php";
 
 /** Resolves the backend base path from the current frontend route. */
 function getApiBasePath() {
@@ -168,6 +169,46 @@ async function requestJson(endpoint, options) {
 	};
 }
 
+/** Uploads a screenshot file and returns a URL that can be stored on the bug. */
+async function uploadScreenshot(file) {
+	if (!file) {
+		return { success: false, message: "No screenshot file selected." };
+	}
+
+	if (isMockMode()) {
+		return {
+			success: true,
+			url: URL.createObjectURL(file),
+			message: "Screenshot uploaded (mock mode)."
+		};
+	}
+
+	const formData = new FormData();
+	formData.append("screenshot", file);
+
+	const response = await fetch(getApiBasePath() + "/" + SCREENSHOT_UPLOAD_ENDPOINT, {
+		method: "POST",
+		body: formData,
+		credentials: "same-origin"
+	});
+
+	let result;
+	try {
+		result = await response.json();
+	} catch (error) {
+		return {
+			success: false,
+			message: "Upload failed due to invalid server response."
+		};
+	}
+
+	return {
+		success: Boolean(result.success),
+		message: result.message || (response.ok ? "Upload completed." : "Upload failed."),
+		url: result.url || ""
+	};
+}
+
 /** Authenticates a user in mock mode or against the backend auth API. */
 async function loginUser(username, password) {
 	if (isMockMode()) {
@@ -282,6 +323,7 @@ async function submitBug(input) {
 			category: "General",
 			priority: "Medium",
 			status: "Open",
+			screenshot_url: input.screenshot_url || "",
 			created_at: new Date().toISOString()
 		};
 		bugs.unshift(newBug);

@@ -38,7 +38,23 @@
 					<textarea id="description" name="description" rows="6" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2"></textarea>
 				</div>
 
-				<button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700">Submit</button>
+				<div>
+					<label for="screenshot" class="block text-sm font-medium text-slate-700">Screenshot (optional)</label>
+					<input id="screenshot" name="screenshot" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" />
+					<p class="mt-1 text-xs text-slate-500">Accepted types: PNG, JPG, WEBP, GIF. Max 5 MB.</p>
+					<div id="screenshotPreviewContainer" class="hidden mt-3">
+						<p class="text-xs text-slate-600 mb-2">Preview</p>
+						<img id="screenshotPreview" alt="Selected screenshot preview" class="max-h-48 rounded border border-slate-200" />
+					</div>
+				</div>
+
+				<button id="submitButton" type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700">Submit</button>
+				<div id="uploadProgressContainer" class="hidden mt-2">
+					<div class="w-full bg-slate-200 rounded h-2 overflow-hidden">
+						<div id="uploadProgressBar" class="h-2 bg-blue-600" style="width: 0%;"></div>
+					</div>
+					<p id="uploadProgressText" class="mt-1 text-xs text-slate-600">0%</p>
+				</div>
 			</form>
 
 			<div id="submitMessage" class="mt-4 text-sm"></div>
@@ -51,6 +67,48 @@
 	<script>
 		requireAuth();
 		mountNavbar({ basePath: "" });
+		const screenshotInput = document.getElementById("screenshot");
+		const previewContainer = document.getElementById("screenshotPreviewContainer");
+		const previewImage = document.getElementById("screenshotPreview");
+		const submitButton = document.getElementById("submitButton");
+		const progressContainer = document.getElementById("uploadProgressContainer");
+		const progressBar = document.getElementById("uploadProgressBar");
+		const progressText = document.getElementById("uploadProgressText");
+
+		screenshotInput.addEventListener("change", function () {
+			const file = screenshotInput.files[0];
+			if (!file) {
+				previewContainer.classList.add("hidden");
+				previewImage.removeAttribute("src");
+				return;
+			}
+
+			const reader = new FileReader();
+			reader.onload = function (event) {
+				previewImage.src = event.target.result;
+				previewContainer.classList.remove("hidden");
+			};
+			reader.readAsDataURL(file);
+		});
+
+		function setSubmittingState(isSubmitting) {
+			submitButton.disabled = isSubmitting;
+			submitButton.classList.toggle("opacity-60", isSubmitting);
+			submitButton.classList.toggle("cursor-not-allowed", isSubmitting);
+		}
+
+		function setUploadProgress(percent, label) {
+			progressContainer.classList.remove("hidden");
+			const bounded = Math.max(0, Math.min(100, percent));
+			progressBar.style.width = bounded + "%";
+			progressText.textContent = label || (bounded + "%");
+		}
+
+		function resetUploadProgress() {
+			progressBar.style.width = "0%";
+			progressText.textContent = "0%";
+			progressContainer.classList.add("hidden");
+		}
 
 		// Handles bug submission form validation and API submission feedback.
 		document.getElementById("submitBugForm").addEventListener("submit", async function (event) {
@@ -59,6 +117,7 @@
 			const title = document.getElementById("title").value.trim();
 			const description = document.getElementById("description").value.trim();
 			const severity = document.getElementById("severity").value;
+			const screenshotFile = document.getElementById("screenshot").files[0] || null;
 			const messageEl = document.getElementById("submitMessage");
 
 			if (!title || !description) {
@@ -67,15 +126,45 @@
 				return;
 			}
 
+			setSubmittingState(true);
+			resetUploadProgress();
+
 			messageEl.className = "mt-4 text-sm text-slate-600";
 			messageEl.textContent = "Submitting bug...";
 
 			try {
-				const result = await submitBug({ title: title, description: description, severity: severity });
+				let screenshotUrl = "";
+
+				if (screenshotFile) {
+					messageEl.textContent = "Uploading screenshot...";
+					setUploadProgress(25, "Preparing upload...");
+					const uploadResult = await uploadScreenshot(screenshotFile);
+					setUploadProgress(80, "Processing uploaded image...");
+					if (!uploadResult.success) {
+						messageEl.className = "mt-4 text-sm text-red-600";
+						messageEl.textContent = uploadResult.message || "Screenshot upload failed.";
+						setSubmittingState(false);
+						resetUploadProgress();
+						return;
+					}
+					screenshotUrl = uploadResult.url;
+					setUploadProgress(100, "Screenshot uploaded.");
+				}
+
+				messageEl.textContent = "Creating bug record...";
+				const result = await submitBug({
+					title: title,
+					description: description,
+					severity: severity,
+					screenshot_url: screenshotUrl
+				});
 				if (result.success) {
 					messageEl.className = "mt-4 text-sm text-green-700";
 					messageEl.textContent = result.message || "Bug submitted successfully.";
 					document.getElementById("submitBugForm").reset();
+					previewContainer.classList.add("hidden");
+					previewImage.removeAttribute("src");
+					setTimeout(resetUploadProgress, 600);
 				} else {
 					messageEl.className = "mt-4 text-sm text-red-600";
 					messageEl.textContent = result.message || "Request failed.";
@@ -84,6 +173,11 @@
 				messageEl.className = "mt-4 text-sm text-red-600";
 				messageEl.textContent = "Failed to submit bug.";
 				console.error(error);
+			} finally {
+				setSubmittingState(false);
+				if (!screenshotFile) {
+					resetUploadProgress();
+				}
 			}
 		});
 	</script>

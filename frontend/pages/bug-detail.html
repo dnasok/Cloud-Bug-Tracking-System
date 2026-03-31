@@ -43,6 +43,10 @@
 				return;
 			}
 
+			const screenshotBlock = bug.screenshot_url
+				? ("<div><p><strong>Screenshot:</strong></p><a class='text-blue-700 hover:underline' target='_blank' rel='noopener noreferrer' href='" + escapeHtml(bug.screenshot_url) + "'>Open original image</a><div class='mt-2'><img class='max-h-96 rounded border border-slate-200' src='" + escapeHtml(bug.screenshot_url) + "' alt='Bug screenshot preview' loading='lazy'/></div></div>")
+				: "<p><strong>Screenshot:</strong> -</p>";
+
 			detail.innerHTML =
 				"<div class='space-y-3'>" +
 					"<p><strong>ID:</strong> #" + escapeHtml(String(bug.id)) + "</p>" +
@@ -53,7 +57,7 @@
 					"<p><strong>Severity:</strong> " + escapeHtml(bug.severity || "-") + "</p>" +
 					"<p><strong>Status:</strong> " + escapeHtml(bug.status || "Open") + "</p>" +
 					"<p><strong>Assigned To:</strong> " + escapeHtml(bug.assigned_to || "-") + "</p>" +
-					"<p><strong>Screenshot URL:</strong> " + (bug.screenshot_url ? ("<a class='text-blue-700 hover:underline' target='_blank' href='" + escapeHtml(bug.screenshot_url) + "'>Open</a>") : "-") + "</p>" +
+					screenshotBlock +
 					"<p><strong>Created:</strong> " + escapeHtml(formatDate(bug.created_at)) + "</p>" +
 				"</div>";
 
