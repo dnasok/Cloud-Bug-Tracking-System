@@ -1,4 +1,5 @@
 # CSD3156-Team-Project-2
+
 Cloud-Based Bug Tracking and Reporting System for Developers
 
 ## File Documentation
@@ -46,6 +47,7 @@ Then open:
 On the login page, keep **Use local mock mode** checked.
 
 Default test users:
+
 - `admin / admin123`
 - `dev / dev12345`
 - `user / user12345`
@@ -63,3 +65,36 @@ Default test users:
 
 - Uncheck **Use local mock mode** on login page
 - Ensure backend endpoints are running and DB config is valid in `backend/inc/dbinfo.inc`
+
+## Screenshot Upload Storage
+
+The screenshot upload endpoint supports two storage modes:
+
+- Local disk (default): files are stored in `backend/uploads/`
+- AWS S3: files are uploaded to your S3 bucket
+
+### Enable S3 mode
+
+Set these environment variables for Apache/PHP:
+
+- `SCREENSHOT_STORAGE=s3`
+- `AWS_REGION=<your-region>`
+- `AWS_BUCKET=<your-bucket-name>`
+
+Optional:
+
+- `AWS_S3_PREFIX=bug-screenshots`
+- `AWS_S3_ACL=public-read`
+- `AWS_S3_PUBLIC_BASE_URL=https://<cloudfront-or-custom-domain>`
+- `AWS_ACCESS_KEY_ID=<access-key>`
+- `AWS_SECRET_ACCESS_KEY=<secret-key>`
+
+If `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are not set, the endpoint uses the EC2 IAM role.
+
+### Required PHP dependency for S3
+
+Install the AWS SDK in the project root:
+
+```bash
+composer require aws/aws-sdk-php
+```
