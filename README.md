@@ -24,6 +24,7 @@ Cloud-Based Bug Tracking and Reporting System for Developers
 - `backend/bug_backend_api.php`: JSON API for bug CRUD operations.
 - `backend/classify_bug.php`: Rule-based bug category and priority classification helpers.
 - `backend/db_functions.php`: Shared database connection and users table helpers.
+- `backend/upload_screenshot.php`: Screenshot upload API (local storage or AWS S3).
 - `backend/inc/dbinfo.inc`: Database configuration constants.
 
 ## Local Frontend Testing (No Backend Required)
