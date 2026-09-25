@@ -1,101 +1,121 @@
-# CSD3156-Team-Project-2
+# Cloud Bug Tracking System
 
-Cloud-Based Bug Tracking and Reporting System for Developers
+An academic full-stack prototype for reporting, classifying, and managing software bugs. The project pairs a responsive browser frontend with a PHP/MySQL API and includes a local mock mode so the core workflow can be demonstrated without a database or backend server.
 
-## File Documentation
+## What It Demonstrates
+
+- User signup, login, logout, and session validation
+- Role-aware experiences for `user`, `developer`, and `admin` accounts
+- Bug creation with title, description, severity, status, assignee, and optional screenshot
+- Automatic category and priority classification from bug text
+- Search and status/priority filtering on the dashboard
+- Bug detail views with screenshot previews
+- Privileged status updates, assignment changes, and deletion
+- Admin/developer summary metrics for open, in-progress, and resolved bugs
+- Local browser storage for demos, or MySQL persistence through the PHP API
+- Local filesystem or Amazon S3 screenshot storage
+
+## Technical Overview
+
+The frontend is a set of HTML pages styled with Tailwind CSS via CDN and shared CSS. Vanilla JavaScript modules handle API communication, authentication state, route guards, safe HTML rendering, date formatting, navigation, and mock data.
+
+The backend is a collection of PHP endpoints using MySQLi and prepared statements. Tables are created or upgraded lazily when the API runs. Backend authentication stores the authenticated user in a PHP session, while the frontend API client can switch between backend requests and a local `localStorage` implementation.
+
+Bug classification is intentionally lightweight and explainable: `classify_bug.php` normalizes the title and description, scores weighted keywords, and selects a category from `Security`, `Crash`, `Performance`, `UI`, or `General`. A second weighted score assigns `High`, `Medium`, or `Low` priority.
+
+## Main Workflows
+
+1. Sign in or create an account.
+2. Review all submitted bugs from the dashboard.
+3. Search by title or filter by status and priority.
+4. Submit a bug and optionally attach an image.
+5. Open the bug detail view to inspect classification, severity, assignment, and status.
+6. As a developer or admin, update the workflow status, assign the bug, or delete it.
+7. Review profile metrics or the privileged status summary dashboard.
+
+## Project Structure
 
 ### Frontend
 
-- `frontend/index.html`: Login entry page with mock-mode toggle and authentication flow.
-- `frontend/css/styles.css`: Shared visual styles used by all frontend pages.
-- `frontend/js/api-client.js`: API layer for auth and bug operations (mock mode + backend mode).
-- `frontend/js/auth.js`: Authentication/session helpers and route guards for protected pages.
-- `frontend/js/utils.js`: Utility helpers (validation, escaping, date formatting, navbar mounting).
-- `frontend/pages/dashboard.html`: Main bug listing page with search and filter UI.
-- `frontend/pages/admin-dashboard.html`: Admin/developer summary dashboard with status counts.
-- `frontend/pages/bug-detail.html`: Bug detail page with update/delete actions for privileged roles.
-- `frontend/pages/profile.html`: Basic profile page showing user info and system bug counts.
-- `frontend/pages/signup.html`: New user registration page.
-- `frontend/pages/submit-bug.html`: Bug submission page.
+- `frontend/index.html`: Login entry point and mock-mode switch.
+- `frontend/pages/signup.html`: Account registration.
+- `frontend/pages/dashboard.html`: Searchable and filterable bug list.
+- `frontend/pages/submit-bug.html`: Bug submission and screenshot preview.
+- `frontend/pages/bug-detail.html`: Bug inspection and privileged actions.
+- `frontend/pages/admin-dashboard.html`: Status summary for developers and admins.
+- `frontend/pages/profile.html`: Current user information and bug metrics.
+- `frontend/js/api-client.js`: Mock/backend API abstraction and bug operations.
+- `frontend/js/auth.js`: Local auth state, route guards, and logout.
+- `frontend/js/utils.js`: Shared validation, escaping, dates, and navigation.
+- `frontend/css/styles.css`: Shared visual styles.
 
 ### Backend
 
-- `backend/auth.php`: Authentication API (signup, login, logout, session).
-- `backend/bug_backend_api.php`: JSON API for bug CRUD operations.
-- `backend/classify_bug.php`: Rule-based bug category and priority classification helpers.
-- `backend/db_functions.php`: Shared database connection and users table helpers.
-- `backend/upload_screenshot.php`: Screenshot upload API (local storage or AWS S3).
-- `backend/inc/dbinfo.inc`: Database configuration constants.
+- `backend/auth.php`: Signup, login, logout, and session endpoints.
+- `backend/bug_backend_api.php`: JSON CRUD API for bug records.
+- `backend/classify_bug.php`: Keyword-based category and priority scoring.
+- `backend/db_functions.php`: MySQL connection and schema helpers.
+- `backend/upload_screenshot.php`: Validated image upload to local storage or S3.
+- `backend/inc/dbinfo.inc`: Database connection configuration.
 
-## Local Frontend Testing (No Backend Required)
+The `docs/` directory contains the original project proposal and project report PDFs.
 
-You can test the full frontend flow locally using a built-in mock API mode (browser localStorage).
+## Run the Frontend Demo
 
-### 1) Start a simple local static server
+No PHP, MySQL, or Composer installation is required for the mock-mode walkthrough.
 
-From project root:
+From the repository root, start a static server:
 
 ```powershell
 python -m http.server 5500
 ```
 
-Then open:
+Open [http://localhost:5500/frontend/index.html](http://localhost:5500/frontend/index.html) and leave **Use local mock mode** enabled.
 
-`http://localhost:5500/frontend/index.html`
+Seeded demo accounts:
 
-### 2) Enable mock mode
+| Role | Username | Password |
+| --- | --- | --- |
+| Admin | `admin` | `admin123` |
+| Developer | `dev` | `dev12345` |
+| User | `user` | `user12345` |
 
-On the login page, keep **Use local mock mode** checked.
+Mock users and bugs are stored in browser `localStorage`. The URL query parameter `?mock=1` enables mock mode and `?mock=0` selects the backend mode; the selection is persisted for later requests.
 
-Default test users:
+## Run With the PHP/MySQL Backend
 
-- `admin / admin123`
-- `dev / dev12345`
-- `user / user12345`
+1. Serve the repository through Apache or another PHP-capable web server.
+2. Create a MySQL database and update the connection values in `backend/inc/dbinfo.inc` or replace that configuration with environment-backed secrets.
+3. Open the frontend and disable mock mode.
+4. The API creates the `users` and `bugs` tables as needed.
 
-### 3) Test flows
+The primary backend operations are:
 
-- Sign up a new account
-- Login
-- View dashboard bug list
-- Submit a new bug
-- Open bug detail page
-- View profile/admin pages based on role
+| Endpoint | Methods | Purpose |
+| --- | --- | --- |
+| `backend/auth.php` | `POST` | Signup, login, logout, and session checks via `action` |
+| `backend/bug_backend_api.php` | `GET` | List bugs, filter by status/priority/category, or fetch one by `id` |
+| `backend/bug_backend_api.php` | `POST` | Create a classified bug record |
+| `backend/bug_backend_api.php?id={id}` | `PATCH` / `PUT` | Update a bug |
+| `backend/bug_backend_api.php?id={id}` | `DELETE` | Delete a bug |
+| `backend/upload_screenshot.php` | `POST` | Upload an approved image file |
 
-### 4) Switch to real backend later
+### Screenshot storage
 
-- Uncheck **Use local mock mode** on login page
-- Ensure backend endpoints are running and DB config is valid in `backend/inc/dbinfo.inc`
-
-## Screenshot Upload Storage
-
-The screenshot upload endpoint supports two storage modes:
-
-- Local disk (default): files are stored in `backend/uploads/`
-- AWS S3: files are uploaded to your S3 bucket
-
-### Enable S3 mode
-
-Set these environment variables for Apache/PHP:
-
-- `SCREENSHOT_STORAGE=s3`
-- `AWS_REGION=<your-region>`
-- `AWS_BUCKET=<your-bucket-name>`
-
-Optional:
-
-- `AWS_S3_PREFIX=bug-screenshots`
-- `AWS_S3_ACL=public-read`
-- `AWS_S3_PUBLIC_BASE_URL=https://<cloudfront-or-custom-domain>`
-- `AWS_ACCESS_KEY_ID=<access-key>`
-- `AWS_SECRET_ACCESS_KEY=<secret-key>`
-
-If `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are not set, the endpoint uses the EC2 IAM role.
-
-### Required PHP dependency for S3
-
-Install the AWS SDK in the project root:
+Local disk storage is the default and writes files to `backend/uploads/`. To use S3, install the AWS SDK and configure the server environment:
 
 ```bash
 composer require aws/aws-sdk-php
 ```
+
+Required variables:
+
+```text
+SCREENSHOT_STORAGE=s3
+AWS_REGION=<your-region>
+AWS_BUCKET=<your-bucket-name>
+```
+
+Optional variables include `AWS_S3_PREFIX`, `AWS_S3_ACL`, `AWS_S3_PUBLIC_BASE_URL`, `AWS_ACCESS_KEY_ID`, and `AWS_SECRET_ACCESS_KEY`. Without explicit access keys, the AWS SDK can use the runtime IAM role.
+
+Uploads are limited to PNG, JPG, WEBP, and GIF files up to 5 MB.
