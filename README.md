@@ -85,9 +85,18 @@ Mock users and bugs are stored in browser `localStorage`. The URL query paramete
 ## Run With the PHP/MySQL Backend
 
 1. Serve the repository through Apache or another PHP-capable web server.
-2. Create a MySQL database and update the connection values in `backend/inc/dbinfo.inc` or replace that configuration with environment-backed secrets.
+2. Create a MySQL database and provide the connection values as server environment variables. The tracked `backend/inc/dbinfo.inc` file contains placeholders only.
 3. Open the frontend and disable mock mode.
 4. The API creates the `users` and `bugs` tables as needed.
+
+Database environment variables:
+
+```text
+DB_SERVER=localhost
+DB_USERNAME=your_database_username
+DB_PASSWORD=your_database_password
+DB_DATABASE=bug_tracker_db
+```
 
 The primary backend operations are:
 

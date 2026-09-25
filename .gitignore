@@ -1,0 +1,11 @@
+# Local configuration and environment secrets
+.env
+.env.*
+!.env.example
+backend/inc/dbinfo.local.inc
+
+# Dependencies and runtime files
+vendor/
+backend/uploads/*
+!backend/uploads/.gitkeep
+*.log
